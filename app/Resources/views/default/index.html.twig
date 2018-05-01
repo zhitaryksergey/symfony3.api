@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="col-sm"></div>
+            <div class="col-sm">
+                <form id="transaction">
+                    <div class="form-group">
+                        <label for="email">Email address</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" placeholder="Amount" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+            <div class="col-sm"></div>
+        </div>
+    </div>
+
+    <br>
+
+    {% if transactions_for_current_month is not empty %}
+        <div class="container">
+            <h5>All approved transactions for each email within current month</h5>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Sum</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for transaction in transactions_for_current_month %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td>{{ transaction.email }}</td>
+                        <td>{{ transaction.sum }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <br>
+
+    {% if transactions_for_last_7_days is not empty %}
+        <div class="container">
+            <h5>All approved transactions per each day of the week per each email</h5>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Email</th>
+                    {% for day in week_days %}
+                        <th scope="col">{{ day }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for email, days in transactions_for_last_7_days %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td>{{ email }}</td>
+                        {% for day in week_days %}
+                            <td>{{ days[day] }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script>
+        $('#transaction').submit(function (event) {
+            var email = $('#email').val();
+            var amount = $('#amount').val();
+
+            $(".help-block").remove();
+            $.post("/app_dev.php/transaction/" + email + "/" + amount + "/", function (data) {
+                if (data.status == 'rejected') {
+                    alert("Rejected! " + data.error_message);
+                } else {
+                    alert("Success! Transaction is approved!");
+                    location.reload();
+                }
+            }).fail(function (xhr, status, error) {
+                $.each(xhr.responseJSON.errors, function (key, value) {
+                    $('#' + key).parent().addClass('has-error');
+                    $('#' + key).parent().append('<div class="help-block">' + value + '</div>');
+                });
+            });
+
+            event.preventDefault();
+        })
+    </script>
+{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+{% endblock %}
